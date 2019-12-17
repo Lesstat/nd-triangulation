@@ -1,0 +1,13 @@
+[package]
+name = "cpp-tri"
+version = "0.1.0"
+authors = ["Florian Barth <barth@fmi.uni-stuttgart.de>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+cpp = "^0.5"
+
+[build-dependencies]
+cpp_build = "^0.5"
