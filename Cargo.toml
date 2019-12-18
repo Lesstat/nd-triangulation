@@ -3,8 +3,8 @@ name = "nd-triangulation"
 version = "0.1.0"
 authors = ["Florian Barth <barth@fmi.uni-stuttgart.de>"]
 edition = "2018"
-
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+description = "Arbirary dimensional triangulations using CGAL"
+license = "GPL-3.0-or-later"
 
 [dependencies]
 cpp = "^0.5"
