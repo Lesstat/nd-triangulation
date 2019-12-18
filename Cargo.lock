@@ -110,7 +110,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
 name = "nd-triangulation"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "cpp 0.5.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "cpp_build 0.5.4 (registry+https://github.com/rust-lang/crates.io-index)",
