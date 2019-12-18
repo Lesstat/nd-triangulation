@@ -1,5 +1,5 @@
 [package]
-name = "cpp-tri"
+name = "nd-triangulation"
 version = "0.1.0"
 authors = ["Florian Barth <barth@fmi.uni-stuttgart.de>"]
 edition = "2018"
@@ -11,3 +11,6 @@ cpp = "^0.5"
 
 [build-dependencies]
 cpp_build = "^0.5"
+
+[dev-dependencies]
+rand = "^0.7"
