@@ -2,13 +2,12 @@
 extern crate cpp;
 
 cpp! {{
-    #include <iostream>
     #include <iterator>
     #include <CGAL/Epick_d.h>
     #include <CGAL/Triangulation.h>
 
     using K = CGAL::Epick_d<CGAL::Dynamic_dimension_tag>;
-    using Triangulation =CGAL::Triangulation<K>;
+    using Triangulation = CGAL::Triangulation<K>;
 
     using Point = Triangulation::Point;
     using Facet_iterator = Triangulation::Facet_iterator;
@@ -19,13 +18,21 @@ cpp! {{
     using Full_cells = std::vector<Full_cell_handle>;
 }}
 
+
+/// Triangulation
+///
+/// Uses the dD triangulation package from CGAL internally.
 #[derive(Debug, PartialEq, Eq)]
 pub struct Triangulation {
+    /// Pointer to CGAL triangulation
     ptr: *mut u8,
+    /// Dimension of the triangulation
     dim: usize,
 }
 
 impl Triangulation {
+
+    /// Create new triangulation for points of size/dimension `dim`
     pub fn new(dim: usize) -> Triangulation {
         let ptr = unsafe { Self::init_triangulation_ptr(dim) };
         Triangulation { ptr, dim }
@@ -37,6 +44,9 @@ impl Triangulation {
         })
     }
 
+    /// Add point to the triangulation.
+    ///
+    /// The operation fails if `coords` has the wrong dimension.
     pub fn add_point(&mut self, coords: &[f64]) -> Result<(), String> {
         if coords.len() != self.dim {
             return Err(format!(
@@ -62,6 +72,10 @@ impl Triangulation {
         });
     }
 
+    /// Returns a iterator over all convex hull cells/facets.
+    ///
+    /// This allocates a vector with cell handles internally and is
+    /// not implemented in the typical streaming fashion of rust iterators.
     pub fn convex_hull_cells(&self) -> CellIter {
         let cells = unsafe { self.gather_ch_cells() };
         CellIter::new(self, cells)
@@ -89,6 +103,8 @@ impl Drop for Triangulation {
     }
 }
 
+
+/// Iterator over cells/facets of a triangulation
 #[derive(Debug)]
 pub struct CellIter<'a> {
     cur: usize,
@@ -136,6 +152,7 @@ impl<'a> Iterator for CellIter<'a> {
     }
 }
 
+/// Representation of a specific cell of a triangulation
 #[derive(Debug, PartialEq, Eq)]
 pub struct Cell<'a> {
     ptr: *mut u8,
@@ -143,6 +160,8 @@ pub struct Cell<'a> {
 }
 
 impl<'a> Cell<'a> {
+
+    /// Returns an iterator over all points that are part of this cell.
     pub fn points(&self) -> PointIter<'_> {
         PointIter {
             cur: 0,
@@ -156,12 +175,13 @@ impl<'a> Drop for CellIter<'a> {
         let cells = self.cells;
         unsafe {
             cpp!([cells as "Full_cells*"]{
-            delete cells;
-                })
+		delete cells;
+            })
         }
     }
 }
 
+/// Iterator over points beloning to a cell
 pub struct PointIter<'a> {
     cur: usize,
     cell: &'a Cell<'a>,
@@ -189,7 +209,7 @@ impl<'a> PointIter<'a> {
         })
     }
 
-	#[rustfmt::skip]
+    #[rustfmt::skip]
     unsafe fn get_point(&mut self) -> Option<&'a [f64]> {
 	let cur_update = self.skip_bogus_vertices();
 	
