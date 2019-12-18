@@ -1,10 +1,11 @@
 [package]
 name = "nd-triangulation"
-version = "0.1.0"
+version = "0.1.1"
 authors = ["Florian Barth <barth@fmi.uni-stuttgart.de>"]
 edition = "2018"
 description = "Arbirary dimensional triangulations using CGAL"
 license = "GPL-3.0-or-later"
+repository = "https://github.com/Lesstat/nd-triangulation"
 
 [dependencies]
 cpp = "^0.5"
