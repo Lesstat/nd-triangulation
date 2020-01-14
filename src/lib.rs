@@ -6,9 +6,16 @@ cpp! {{
     #include <CGAL/Epick_d.h>
     #include <CGAL/Triangulation.h>
 
-    using K = CGAL::Epick_d<CGAL::Dynamic_dimension_tag>;
-    using Triangulation = CGAL::Triangulation<K>;
+    using DynDimension = CGAL::Dynamic_dimension_tag;
+    using K = CGAL::Epick_d<DynDimension>;
 
+    using Vertex = CGAL::Triangulation_vertex<K, uint64_t>;
+    using FullCell = CGAL::Triangulation_full_cell<K, uint64_t>;
+    using TDS = CGAL::Triangulation_data_structure<DynDimension, Vertex, FullCell>;
+    using Triangulation = CGAL::Triangulation<K, TDS>;
+
+}}
+cpp! {{
     using Point = Triangulation::Point;
     using Facet_iterator = Triangulation::Facet_iterator;
     using Facet = Triangulation::Facet;
@@ -18,6 +25,9 @@ cpp! {{
     using Full_cells = std::vector<Full_cell_handle>;
 }}
 
+mod points;
+
+pub use points::*;
 
 /// Triangulation
 ///
@@ -28,14 +38,18 @@ pub struct Triangulation {
     ptr: *mut u8,
     /// Dimension of the triangulation
     dim: usize,
+    next_point_id: usize,
 }
 
 impl Triangulation {
-
     /// Create new triangulation for points of size/dimension `dim`
     pub fn new(dim: usize) -> Triangulation {
         let ptr = unsafe { Self::init_triangulation_ptr(dim) };
-        Triangulation { ptr, dim }
+        Triangulation {
+            ptr,
+            dim,
+            next_point_id: 0,
+        }
     }
 
     unsafe fn init_triangulation_ptr(dim: usize) -> *mut u8 {
@@ -47,7 +61,7 @@ impl Triangulation {
     /// Add point to the triangulation.
     ///
     /// The operation fails if `coords` has the wrong dimension.
-    pub fn add_point(&mut self, coords: &[f64]) -> Result<(), String> {
+    pub fn add_point(&mut self, coords: &[f64]) -> Result<usize, String> {
         if coords.len() != self.dim {
             return Err(format!(
                 "Point has incorrect dimension ({} != {})",
@@ -55,21 +69,24 @@ impl Triangulation {
                 self.dim
             ));
         }
-        unsafe {
-            self.add_point_internal(coords);
-        }
-        Ok(())
+        let id = unsafe { self.add_point_internal(coords) };
+        Ok(id)
     }
 
-    unsafe fn add_point_internal(&mut self, coords: &[f64]) {
+    unsafe fn add_point_internal(&mut self, coords: &[f64]) -> usize {
         let tri = self.ptr;
         let dim = self.dim;
         let coords = coords.as_ptr();
+        let point_id = self.next_point_id;
 
-        cpp!([tri as "Triangulation*", dim as "size_t", coords as "double*"] {
+        cpp!([tri as "Triangulation*", dim as "size_t", coords as "double*", point_id as "size_t"] {
             auto p = Point(dim, &coords[0], &coords[dim]);
-            tri->insert(p);
+            auto vertex = tri->insert(p);
+            auto& id = vertex->data();
+            id = point_id;
         });
+        self.next_point_id += 1;
+        point_id
     }
 
     /// Returns a iterator over all convex hull cells/facets.
@@ -102,7 +119,6 @@ impl Drop for Triangulation {
         }
     }
 }
-
 
 /// Iterator over cells/facets of a triangulation
 #[derive(Debug)]
@@ -160,13 +176,9 @@ pub struct Cell<'a> {
 }
 
 impl<'a> Cell<'a> {
-
     /// Returns an iterator over all points that are part of this cell.
     pub fn points(&self) -> PointIter<'_> {
-        PointIter {
-            cur: 0,
-            cell: &self,
-        }
+        PointIter::new(&self)
     }
 }
 
@@ -175,80 +187,9 @@ impl<'a> Drop for CellIter<'a> {
         let cells = self.cells;
         unsafe {
             cpp!([cells as "Full_cells*"]{
-		delete cells;
-            })
+            delete cells;
+                })
         }
-    }
-}
-
-/// Iterator over points beloning to a cell
-pub struct PointIter<'a> {
-    cur: usize,
-    cell: &'a Cell<'a>,
-}
-
-impl<'a> PointIter<'a> {
-
-    #[rustfmt::skip]
-    unsafe fn skip_bogus_vertices(&self) -> i64 {
-        let tri = self.cell.tri.ptr;
-        let cell = self.cell.ptr;
-	let cur = self.cur;
-        cpp!([tri as "Triangulation*", cell as "Full_cell_handle", cur as "size_t"] -> i64 as "int64_t" {
-	    auto v = cell->vertices_begin();
-	    std::advance(v, cur);
-	    if (v == cell->vertices_end()){
-	        return -1;
-	    }
-	    if (*v == Vertex_handle() || tri->is_infinite(*v)){
-		std::advance(v,1);
-		return 1;
-	    }
-	    return 0;
-
-        })
-    }
-
-    #[rustfmt::skip]
-    unsafe fn get_point(&mut self) -> Option<&'a [f64]> {
-	let cur_update = self.skip_bogus_vertices();
-	
-	if cur_update < 0{
-	    return None;
-	}
-	self.cur += cur_update as usize;
-	
-        let cell = self.cell.ptr;
-	let cur = self.cur;
-	let ptr = cpp!([cell as "Full_cell_handle", cur as "size_t"] -> *const f64 as "const double*"{
-
-	    auto v = cell->vertices_begin();
-	    std::advance(v, cur);
-
-	    if (v != cell->vertices_end()){
-		Vertex_handle vert = *v;
-		auto& p = vert->point();
-		return p.data();
-	    }
-	    return nullptr;
-	    
-	});
-
-        if ptr.is_null() {
-	    return None;
-        }
-        let slice = std::slice::from_raw_parts(ptr, self.cell.tri.dim);
-        Some(slice)
-    }
-}
-
-impl<'a> Iterator for PointIter<'a> {
-    type Item = &'a [f64];
-
-    fn next(&mut self) -> Option<Self::Item> {
-        let next = unsafe { self.get_point() };
-        self.cur += 1;
-        next
     }
 }
 
@@ -290,36 +231,31 @@ fn test_convex_hull_has_right_size() {
 
 #[test]
 fn test_convex_hull_has_right_cells() {
-    fn to_slice(f: &[f64]) -> &[f64] {
-        f
-    }
     let mut tri = Triangulation::new(2);
 
     let p1 = &[1.0, 1.0];
     let p2 = &[2.0, 1.0];
     let p3 = &[1.5, 1.5];
 
-    tri.add_point(p1).unwrap();
-    tri.add_point(p2).unwrap();
-    tri.add_point(p3).unwrap();
+    let id1 = tri.add_point(p1).unwrap();
+    let id2 = tri.add_point(p2).unwrap();
+    let id3 = tri.add_point(p3).unwrap();
+
+    dbg!(id1, id2, id3);
 
     let ch_cells = tri.convex_hull_cells();
 
     for cell in ch_cells {
-        let all_points: Vec<&[f64]> = cell.points().collect();
+        let mut all_points: Vec<_> = cell.points().collect();
+
+        all_points.dedup_by_key(|p| p.id());
 
         assert_eq!(2, all_points.len());
-        let mut point_count = 0;
-        if all_points.contains(&to_slice(p1)) {
-            point_count += 1;
-        }
-        if all_points.contains(&to_slice(p2)) {
-            point_count += 1;
-        }
-        if all_points.contains(&to_slice(p3)) {
-            point_count += 1;
-        }
 
-        assert_eq!(2, point_count);
+        let only_input_points = all_points
+            .iter()
+            .map(Point::id)
+            .all(|id| id == id1 || id == id2 || id == id3);
+        assert!(only_input_points);
     }
 }

@@ -15,7 +15,9 @@ fn main() {
 
     let mut tri = Triangulation::new(dim);
 
-    points.chunks(dim).for_each(|p| tri.add_point(&p).unwrap());
+    points.chunks(dim).for_each(|p| {
+        tri.add_point(&p).unwrap();
+    });
 
     println!(
         "Convex hull of triangulation consists of {} cells",
