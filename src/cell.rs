@@ -5,7 +5,7 @@ use crate::{Triangulation, VertexIter};
 pub struct CellIter<'a> {
     cur: usize,
     size: usize,
-    cells: *mut u8,
+    cells: *mut u8, //c++ type: Full_cells*
     pub(crate) tri: &'a Triangulation,
 }
 
@@ -51,7 +51,7 @@ impl<'a> Iterator for CellIter<'a> {
 /// Representation of a specific cell of a triangulation
 #[derive(Debug, PartialEq, Eq)]
 pub struct Cell<'a> {
-    ptr: *mut u8,
+    ptr: *mut u8, // c++ type Full_cell_handle
     tri: &'a Triangulation,
 }
 
@@ -62,8 +62,11 @@ impl<'a> Cell<'a> {
     }
 
     /// Unique id between all cells of one triangulation
+    ///
+    /// Cell ids start with one because they are assigned lazily to
+    /// the cells and zero ist the default value for `size_t`s in c++
     pub fn id(&self) -> usize {
-        0
+        unsafe { self.retrieve_id() }
     }
 
     pub(crate) fn tri(&self) -> &Triangulation {
@@ -73,15 +76,24 @@ impl<'a> Cell<'a> {
     pub(crate) fn ptr(&self) -> *mut u8 {
         self.ptr
     }
+
+    #[rustfmt::skip]
+    unsafe fn retrieve_id(&self) -> usize {
+        let ptr = self.ptr;
+        cpp!([ptr as "Full_cell_handle"] -> usize as "size_t"{
+            return ptr->data();
+        })
+    }
 }
 
 impl<'a> Drop for CellIter<'a> {
+    #[rustfmt::skip]
     fn drop(&mut self) {
         let cells = self.cells;
         unsafe {
             cpp!([cells as "Full_cells*"]{
-            delete cells;
-                })
+		delete cells;
+            })
         }
     }
 }
@@ -94,7 +106,7 @@ fn test_cells_get_assigned_increasing_ids() {
     tri.add_vertex(&[2.0, 1.0]).unwrap();
     tri.add_vertex(&[1.5, 1.5]).unwrap();
 
-    let mut expected_cell_id = 0;
+    let mut expected_cell_id = 1;
 
     for cell in tri.convex_hull_cells() {
         assert_eq!(expected_cell_id, cell.id());
