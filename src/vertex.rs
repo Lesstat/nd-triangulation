@@ -1,11 +1,11 @@
 use crate::Cell;
 
-pub struct Point<'a> {
+pub struct Vertex<'a> {
     ptr: *mut u8,
     cell: &'a Cell<'a>,
 }
 
-impl<'a> Point<'a> {
+impl<'a> Vertex<'a> {
     pub fn id(&self) -> usize {
         unsafe { self.retrieve_id() }
     }
@@ -31,15 +31,15 @@ impl<'a> Point<'a> {
     }
 }
 
-/// Iterator over points beloning to a cell
-pub struct PointIter<'a> {
+/// Iterator over vertices beloning to a cell
+pub struct VertexIter<'a> {
     cur: usize,
     cell: &'a Cell<'a>,
 }
 
-impl<'a> PointIter<'a> {
-    pub fn new(cell: &'a Cell) -> PointIter<'a> {
-        PointIter { cur: 0, cell }
+impl<'a> VertexIter<'a> {
+    pub fn new(cell: &'a Cell) -> VertexIter<'a> {
+        VertexIter { cur: 0, cell }
     }
 
     #[rustfmt::skip]
@@ -63,7 +63,7 @@ impl<'a> PointIter<'a> {
     }
 
     #[rustfmt::skip]
-    unsafe fn get_point(&mut self) -> Option<Point<'a>> {
+    unsafe fn get_point(&mut self) -> Option<Vertex<'a>> {
         let cur_update = self.skip_bogus_vertices();
 
         if cur_update < 0 {
@@ -89,15 +89,15 @@ impl<'a> PointIter<'a> {
             return None;
         }
 
-        Some(Point {
+        Some(Vertex {
             ptr,
             cell: self.cell,
         })
     }
 }
 
-impl<'a> Iterator for PointIter<'a> {
-    type Item = Point<'a>;
+impl<'a> Iterator for VertexIter<'a> {
+    type Item = Vertex<'a>;
 
     fn next(&mut self) -> Option<Self::Item> {
         let next = unsafe { self.get_point() };

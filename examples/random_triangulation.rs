@@ -16,7 +16,7 @@ fn main() {
     let mut tri = Triangulation::new(dim);
 
     points.chunks(dim).for_each(|p| {
-        tri.add_point(&p).unwrap();
+        tri.add_vertex(&p).unwrap();
     });
 
     println!(

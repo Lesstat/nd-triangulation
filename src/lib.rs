@@ -25,9 +25,9 @@ cpp! {{
     using Full_cells = std::vector<Full_cell_handle>;
 }}
 
-mod points;
+mod vertex;
 
-pub use points::*;
+pub use vertex::*;
 
 /// Triangulation
 ///
@@ -61,7 +61,7 @@ impl Triangulation {
     /// Add point to the triangulation.
     ///
     /// The operation fails if `coords` has the wrong dimension.
-    pub fn add_point(&mut self, coords: &[f64]) -> Result<usize, String> {
+    pub fn add_vertex(&mut self, coords: &[f64]) -> Result<usize, String> {
         if coords.len() != self.dim {
             return Err(format!(
                 "Point has incorrect dimension ({} != {})",
@@ -69,11 +69,11 @@ impl Triangulation {
                 self.dim
             ));
         }
-        let id = unsafe { self.add_point_internal(coords) };
+        let id = unsafe { self.add_vertex_internal(coords) };
         Ok(id)
     }
 
-    unsafe fn add_point_internal(&mut self, coords: &[f64]) -> usize {
+    unsafe fn add_vertex_internal(&mut self, coords: &[f64]) -> usize {
         let tri = self.ptr;
         let dim = self.dim;
         let coords = coords.as_ptr();
@@ -176,9 +176,9 @@ pub struct Cell<'a> {
 }
 
 impl<'a> Cell<'a> {
-    /// Returns an iterator over all points that are part of this cell.
-    pub fn points(&self) -> PointIter<'_> {
-        PointIter::new(&self)
+    /// Returns an iterator over all vertices that are part of this cell.
+    pub fn vertices(&self) -> VertexIter<'_> {
+        VertexIter::new(&self)
     }
 }
 
@@ -200,13 +200,13 @@ fn test_triangulation_can_be_created_and_dropped_safely() {
 }
 
 #[test]
-fn test_points_have_to_be_of_right_dimension() {
+fn test_vertices_have_to_be_of_right_dimension() {
     let mut tri = Triangulation::new(3);
-    assert!(tri.add_point(&[1.0]).is_err());
-    assert!(tri.add_point(&[1.0, 2.0]).is_err());
-    assert!(tri.add_point(&[1.0, 2.0, 3.0]).is_ok());
-    assert!(tri.add_point(&[4.0, 5.0, 6.0]).is_ok());
-    assert!(tri.add_point(&[1.0, 2.0, 3.0, 4.0]).is_err());
+    assert!(tri.add_vertex(&[1.0]).is_err());
+    assert!(tri.add_vertex(&[1.0, 2.0]).is_err());
+    assert!(tri.add_vertex(&[1.0, 2.0, 3.0]).is_ok());
+    assert!(tri.add_vertex(&[4.0, 5.0, 6.0]).is_ok());
+    assert!(tri.add_vertex(&[1.0, 2.0, 3.0, 4.0]).is_err());
 }
 
 #[test]
@@ -221,9 +221,9 @@ fn test_empty_triangulation_has_pseudo_cell() {
 fn test_convex_hull_has_right_size() {
     let mut tri = Triangulation::new(2);
 
-    tri.add_point(&[1.0, 1.0]).unwrap();
-    tri.add_point(&[2.0, 1.0]).unwrap();
-    tri.add_point(&[1.5, 1.5]).unwrap();
+    tri.add_vertex(&[1.0, 1.0]).unwrap();
+    tri.add_vertex(&[2.0, 1.0]).unwrap();
+    tri.add_vertex(&[1.5, 1.5]).unwrap();
 
     let ch_cells = tri.convex_hull_cells();
     assert_eq!(3, ch_cells.count());
@@ -237,25 +237,25 @@ fn test_convex_hull_has_right_cells() {
     let p2 = &[2.0, 1.0];
     let p3 = &[1.5, 1.5];
 
-    let id1 = tri.add_point(p1).unwrap();
-    let id2 = tri.add_point(p2).unwrap();
-    let id3 = tri.add_point(p3).unwrap();
+    let id1 = tri.add_vertex(p1).unwrap();
+    let id2 = tri.add_vertex(p2).unwrap();
+    let id3 = tri.add_vertex(p3).unwrap();
 
     dbg!(id1, id2, id3);
 
     let ch_cells = tri.convex_hull_cells();
 
     for cell in ch_cells {
-        let mut all_points: Vec<_> = cell.points().collect();
+        let mut all_vertices: Vec<_> = cell.vertices().collect();
 
-        all_points.dedup_by_key(|p| p.id());
+        all_vertices.dedup_by_key(|p| p.id());
 
-        assert_eq!(2, all_points.len());
+        assert_eq!(2, all_vertices.len());
 
-        let only_input_points = all_points
+        let only_input_vertices = all_vertices
             .iter()
-            .map(Point::id)
+            .map(Vertex::id)
             .all(|id| id == id1 || id == id2 || id == id3);
-        assert!(only_input_points);
+        assert!(only_input_vertices);
     }
 }
