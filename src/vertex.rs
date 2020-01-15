@@ -31,7 +31,7 @@ impl<'a> Vertex<'a> {
             return p.data();
         });
 
-        std::slice::from_raw_parts(point, self.cell.tri.dim)
+        std::slice::from_raw_parts(point, self.cell.tri().dim)
     }
 }
 
@@ -49,8 +49,8 @@ impl<'a> VertexIter<'a> {
 
     #[rustfmt::skip]
     unsafe fn skip_bogus_vertices(&self) -> i64 {
-        let tri = self.cell.tri.ptr;
-        let cell = self.cell.ptr;
+        let tri = self.cell.tri().ptr;
+        let cell = self.cell.ptr();
         let cur = self.cur;
         cpp!([tri as "Triangulation*", cell as "Full_cell_handle", cur as "size_t"] -> i64 as "int64_t" {
             auto v = cell->vertices_begin();
@@ -77,7 +77,7 @@ impl<'a> VertexIter<'a> {
 
         self.cur += cur_update as usize;
 
-        let cell = self.cell.ptr;
+        let cell = self.cell.ptr();
         let cur = self.cur;
         let ptr = cpp!([cell as "Full_cell_handle", cur as "size_t"] -> *mut u8 as "Vertex_handle"{
             auto v = cell->vertices_begin();
