@@ -1,14 +1,18 @@
 use crate::Cell;
 
+/// A vertex which is part of a triangulation
 pub struct Vertex<'a> {
     ptr: *mut u8,
     cell: &'a Cell<'a>,
 }
 
 impl<'a> Vertex<'a> {
+    /// Unique id between all vertices within the same triangulation
     pub fn id(&self) -> usize {
         unsafe { self.retrieve_id() }
     }
+
+    /// Coordinates of the vertex
     pub fn coords(&self) -> &'a [f64] {
         unsafe { self.retrieve_coords() }
     }
@@ -38,6 +42,7 @@ pub struct VertexIter<'a> {
 }
 
 impl<'a> VertexIter<'a> {
+    /// Creates an Iterator over the vertices of a cell
     pub fn new(cell: &'a Cell) -> VertexIter<'a> {
         VertexIter { cur: 0, cell }
     }

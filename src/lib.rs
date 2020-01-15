@@ -241,8 +241,6 @@ fn test_convex_hull_has_right_cells() {
     let id2 = tri.add_vertex(p2).unwrap();
     let id3 = tri.add_vertex(p3).unwrap();
 
-    dbg!(id1, id2, id3);
-
     let ch_cells = tri.convex_hull_cells();
 
     for cell in ch_cells {
