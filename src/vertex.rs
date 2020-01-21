@@ -68,7 +68,7 @@ impl<'a> VertexIter<'a> {
     }
 
     #[rustfmt::skip]
-    unsafe fn get_point(&mut self) -> Option<Vertex<'a>> {
+    unsafe fn get_vertex(&mut self) -> Option<Vertex<'a>> {
         let cur_update = self.skip_bogus_vertices();
 
         if cur_update < 0 {
@@ -105,7 +105,7 @@ impl<'a> Iterator for VertexIter<'a> {
     type Item = Vertex<'a>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        let next = unsafe { self.get_point() };
+        let next = unsafe { self.get_vertex() };
         self.cur += 1;
         next
     }

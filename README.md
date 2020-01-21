@@ -7,7 +7,7 @@ is written for a very specific research purpose. However, I am willing
 to look into integrating new features and of course accept pull requests.
 
 ## Example
-A triangulation can be created incrementally, by adding points to it:
+A triangulation can be created incrementally, by adding vertices to it:
 
 ``` rust
     let mut tri = Triangulation::new(3); // We are doing a 3 dimensional triangulation

@@ -25,11 +25,42 @@ cpp! {{
     using Full_cells = std::vector<Full_cell_handle>;
 }}
 
+use std::fmt;
+
 mod cell;
 mod vertex;
 
 pub use cell::*;
 pub use vertex::*;
+
+#[non_exhaustive]
+#[derive(Debug, PartialEq, Eq)]
+/// Error Type for Triangulation Errors
+pub enum TriangulationError {
+    /// Returned if a vertex of the wrong dimension is added.
+    WrongDimension {
+        actual_dim: usize,
+        expected_dim: usize,
+    },
+}
+
+impl fmt::Display for TriangulationError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        use TriangulationError::*;
+        match self {
+            WrongDimension {
+                actual_dim,
+                expected_dim,
+            } => write!(
+                f,
+                "The vertex could not be added because its dimension was {} instead of {} ",
+                actual_dim, expected_dim
+            ),
+        }
+    }
+}
+
+impl std::error::Error for TriangulationError {}
 
 /// Triangulation
 ///
@@ -45,7 +76,7 @@ pub struct Triangulation {
 }
 
 impl Triangulation {
-    /// Create new triangulation for points of size/dimension `dim`
+    /// Create new triangulation for vertices of size/dimension `dim`
     pub fn new(dim: usize) -> Triangulation {
         let ptr = unsafe { Self::init_triangulation_ptr(dim) };
         Triangulation {
@@ -62,22 +93,26 @@ impl Triangulation {
         })
     }
 
-    /// Add point to the triangulation.
+    /// Add vertex to the triangulation.
     ///
     /// The operation fails if `coords` has the wrong dimension.
-    pub fn add_vertex(&mut self, coords: &[f64]) -> Result<usize, String> {
+    pub fn add_vertex(&mut self, coords: &[f64]) -> Result<usize, TriangulationError> {
         if coords.len() != self.dim {
-            return Err(format!(
-                "Point has incorrect dimension ({} != {})",
-                coords.len(),
-                self.dim
-            ));
+            return Err(TriangulationError::WrongDimension {
+                actual_dim: coords.len(),
+                expected_dim: self.dim,
+            });
         }
-        let id = unsafe { self.add_vertex_internal(coords) };
+        let id = unsafe { self.add_vertex_unchecked(coords) };
         Ok(id)
     }
 
-    unsafe fn add_vertex_internal(&mut self, coords: &[f64]) -> usize {
+    /// Add vertex to triangulation without veryfing the dimension
+    ///
+    /// # Safety
+    /// If the dimension of `coords` is too small undefined behavior might be triggered on the c++ side.
+    /// If the dimension of `coords` is too large only the first `dim` values will be considered.
+    pub unsafe fn add_vertex_unchecked(&mut self, coords: &[f64]) -> usize {
         let tri = self.ptr;
         let dim = self.dim;
         let coords = coords.as_ptr();
@@ -148,7 +183,13 @@ fn test_vertices_have_to_be_of_right_dimension() {
     assert!(tri.add_vertex(&[1.0, 2.0]).is_err());
     assert!(tri.add_vertex(&[1.0, 2.0, 3.0]).is_ok());
     assert!(tri.add_vertex(&[4.0, 5.0, 6.0]).is_ok());
-    assert!(tri.add_vertex(&[1.0, 2.0, 3.0, 4.0]).is_err());
+    assert_eq!(
+        tri.add_vertex(&[1.0, 2.0, 3.0, 4.0]),
+        Err(TriangulationError::WrongDimension {
+            actual_dim: 4,
+            expected_dim: 3
+        })
+    );
 }
 
 #[test]
