@@ -29,5 +29,22 @@ Afterwards, we can iterate over all convex hull cells and their respective point
     }
 ```
 
+## Dependencies
+
+This crate uses the cpp crate for the interaction with c++ and
+specifically cgal. This means that in order to use and compile this
+crate you need to have g++ as well as cgal and eigen3 installed.
+
+## Limitations
+
+At the current state this crate is pretty feature minimal. It offers
+functionality that I need in my research and compiles in the
+environment that I need (specifically archlinux right now). However, I
+am willing to improve this situation if other people want to use this
+and need other features or environments. Just open an issue with your
+use case. Furthermore, I am no expert in rust-c++-interop. Therefore,
+I can and will not promise you that there are no memory leaks or
+undefined behavior. I am doing my best though ;).
+
 
 
