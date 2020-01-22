@@ -153,8 +153,37 @@ impl Triangulation {
 		    (*cell_id)++;
 		}
 	    }
-     
 	    return infinite_full_cells;
+        })
+    }
+
+    /// Returns a iterator over all cells/facets of the triangulation.
+    ///
+    /// This allocates a vector with cell handles internally and is
+    /// not implemented in the typical streaming fashion of rust iterators.
+    pub fn cells(&mut self) -> CellIter {
+        let cells = unsafe { self.gather_all_cells() };
+        CellIter::new(self, cells)
+    }
+
+    #[rustfmt::skip]
+    unsafe fn gather_all_cells(&mut self) -> *mut u8 {
+        let tri = self.ptr;
+        let cell_id = &mut self.next_cell_id;
+
+	cpp!([tri as "Triangulation*", cell_id as "size_t*"] -> *mut u8 as "Full_cells*" {
+	    auto full_cells = new Full_cells();
+	    std::back_insert_iterator<Full_cells> out(*full_cells);
+	    for (auto cit = tri->full_cells_begin(); cit != tri->full_cells_end(); ++cit){
+		auto cell = cit;
+		auto& id = cell->data();
+		if(id == 0){
+		    id = *cell_id;
+		    (*cell_id)++;
+		}
+		full_cells->push_back(cell);
+	    }
+	    return full_cells;
         })
     }
 }
@@ -239,4 +268,16 @@ fn test_convex_hull_has_right_cells() {
             .all(|id| id == id1 || id == id2 || id == id3);
         assert!(only_input_vertices);
     }
+}
+
+#[test]
+fn test_triangulation_has_right_size() {
+    let mut tri = Triangulation::new(2);
+
+    tri.add_vertex(&[1.0, 1.0]).unwrap();
+    tri.add_vertex(&[2.0, 1.0]).unwrap();
+    tri.add_vertex(&[1.5, 1.5]).unwrap();
+
+    let cells = tri.cells();
+    assert_eq!(4, cells.count());
 }
