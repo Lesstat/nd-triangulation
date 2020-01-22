@@ -1,3 +1,5 @@
+[![Documentation](https://docs.rs/nd-triangulation/badge.svg)](https://docs.rs/nd-triangulation/)
+
 # Arbitrary Dimensional Triangulations
 
 This library provides an interface to the [CGAL
