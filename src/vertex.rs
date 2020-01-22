@@ -19,17 +19,25 @@ impl<'a> Vertex<'a> {
 
     unsafe fn retrieve_id(&self) -> usize {
         let ptr = self.ptr;
-        cpp!([ptr as "Vertex_handle"] -> usize as "size_t"{
+        #[cfg(not(feature = "docs-rs"))]
+        return cpp!([ptr as "Vertex_handle"] -> usize as "size_t"{
             return ptr->data();
-        })
+        });
+
+        #[cfg(feature = "docs-rs")]
+        0
     }
 
     unsafe fn retrieve_coords(&self) -> &'a [f64] {
         let ptr = self.ptr;
+        #[cfg(not(feature = "docs-rs"))]
         let point = cpp!([ptr as "Vertex_handle"] -> *const f64 as "const double*"{
             auto& p = ptr->point();
             return p.data();
         });
+
+        #[cfg(feature = "docs-rs")]
+        let point = std::ptr::null();
 
         std::slice::from_raw_parts(point, self.cell.tri().dim)
     }
@@ -52,7 +60,8 @@ impl<'a> VertexIter<'a> {
         let tri = self.cell.tri().ptr;
         let cell = self.cell.ptr();
         let cur = self.cur;
-        cpp!([tri as "Triangulation*", cell as "Full_cell_handle", cur as "size_t"] -> i64 as "int64_t" {
+        #[cfg(not(feature = "docs-rs"))]
+        return cpp!([tri as "Triangulation*", cell as "Full_cell_handle", cur as "size_t"] -> i64 as "int64_t" {
             auto v = cell->vertices_begin();
             std::advance(v, cur);
             if (v == cell->vertices_end()){
@@ -64,7 +73,10 @@ impl<'a> VertexIter<'a> {
             }
             return 0;
 
-        })
+        });
+
+	#[cfg(feature = "docs-rs")]
+	0
     }
 
     #[rustfmt::skip]
@@ -79,6 +91,8 @@ impl<'a> VertexIter<'a> {
 
         let cell = self.cell.ptr();
         let cur = self.cur;
+
+        #[cfg(not(feature = "docs-rs"))]
         let ptr = cpp!([cell as "Full_cell_handle", cur as "size_t"] -> *mut u8 as "Vertex_handle"{
             auto v = cell->vertices_begin();
             std::advance(v, cur);
@@ -90,8 +104,11 @@ impl<'a> VertexIter<'a> {
 
         });
 
+        #[cfg(feature = "docs-rs")]
+	let ptr: *mut u8 = std::ptr::null_mut();
+
         if ptr.is_null() {
-            return None;
+	    return None;
         }
 
         Some(Vertex {

@@ -11,11 +11,15 @@ pub struct CellIter<'a> {
 
 impl<'a> CellIter<'a> {
     pub(crate) fn new(tri: &'a Triangulation, cells: *mut u8) -> CellIter<'a> {
+        #[cfg(not(feature = "docs-rs"))]
         let size = unsafe {
             cpp!([cells as "Full_cells*"] -> usize as "size_t" {
                 return cells->size();
             })
         };
+
+        #[cfg(feature = "docs-rs")]
+        let size = 0;
 
         CellIter {
             cur: 0,
@@ -27,10 +31,14 @@ impl<'a> CellIter<'a> {
 
     unsafe fn cell_ptr(&self, cur: usize) -> *mut u8 {
         let cells = self.cells;
-        cpp!([cells as "Full_cells*", cur as "size_t"] -> *mut u8 as "Full_cell_handle" {
+        #[cfg(not(feature = "docs-rs"))]
+        return cpp!([cells as "Full_cells*", cur as "size_t"] -> *mut u8 as "Full_cell_handle" {
             auto& cell = (*cells)[cur];
             return cell;
-        })
+        });
+
+        #[cfg(feature = "docs-rs")]
+        std::ptr::null_mut()
     }
 }
 
@@ -80,9 +88,13 @@ impl<'a> Cell<'a> {
     #[rustfmt::skip]
     unsafe fn retrieve_id(&self) -> usize {
         let ptr = self.ptr;
-        cpp!([ptr as "Full_cell_handle"] -> usize as "size_t"{
+        #[cfg(not(feature = "docs-rs"))]
+        return cpp!([ptr as "Full_cell_handle"] -> usize as "size_t"{
             return ptr->data();
-        })
+        });
+
+	#[cfg(feature = "docs-rs")]
+	0
     }
 }
 
@@ -91,6 +103,7 @@ impl<'a> Drop for CellIter<'a> {
     fn drop(&mut self) {
         let cells = self.cells;
         unsafe {
+            #[cfg(not(feature = "docs-rs"))]
             cpp!([cells as "Full_cells*"]{
 		delete cells;
             })

@@ -1,6 +1,7 @@
 #[macro_use]
 extern crate cpp;
 
+#[cfg(not(feature = "docs-rs"))]
 cpp! {{
     #include <iterator>
     #include <CGAL/Epick_d.h>
@@ -15,6 +16,8 @@ cpp! {{
     using Triangulation = CGAL::Triangulation<K, TDS>;
 
 }}
+
+#[cfg(not(feature = "docs-rs"))]
 cpp! {{
     using Point = Triangulation::Point;
     using Facet_iterator = Triangulation::Facet_iterator;
@@ -88,9 +91,13 @@ impl Triangulation {
     }
 
     unsafe fn init_triangulation_ptr(dim: usize) -> *mut u8 {
-        cpp!([dim as "size_t"] -> *mut u8 as "Triangulation*"{
+        #[cfg(not(feature = "docs-rs"))]
+        return cpp!([dim as "size_t"] -> *mut u8 as "Triangulation*"{
             return new Triangulation(dim);
-        })
+        });
+
+        #[cfg(feature = "docs-rs")]
+        std::ptr::null_mut()
     }
 
     /// Add vertex to the triangulation.
@@ -118,6 +125,7 @@ impl Triangulation {
         let coords = coords.as_ptr();
         let vertex_id = self.next_vertex_id;
 
+        #[cfg(not(feature = "docs-rs"))]
         cpp!([tri as "Triangulation*", dim as "size_t", coords as "double*", vertex_id as "size_t"] {
             auto p = Point(dim, &coords[0], &coords[dim]);
             auto vertex = tri->insert(p);
@@ -142,7 +150,8 @@ impl Triangulation {
         let tri = self.ptr;
         let cell_id = &mut self.next_cell_id;
 
-	cpp!([tri as "Triangulation*", cell_id as "size_t*"] -> *mut u8 as "Full_cells*" {
+        #[cfg(not(feature = "docs-rs"))]
+	return cpp!([tri as "Triangulation*", cell_id as "size_t*"] -> *mut u8 as "Full_cells*" {
 	    auto infinite_full_cells = new Full_cells();
 	    std::back_insert_iterator<Full_cells> out(*infinite_full_cells);
 	    tri->incident_full_cells(tri->infinite_vertex(), out);
@@ -154,7 +163,10 @@ impl Triangulation {
 		}
 	    }
 	    return infinite_full_cells;
-        })
+        });
+
+	#[cfg(feature = "docs-rs")]
+	std::ptr::null_mut()
     }
 
     /// Returns a iterator over all cells/facets of the triangulation.
@@ -171,7 +183,8 @@ impl Triangulation {
         let tri = self.ptr;
         let cell_id = &mut self.next_cell_id;
 
-	cpp!([tri as "Triangulation*", cell_id as "size_t*"] -> *mut u8 as "Full_cells*" {
+        #[cfg(not(feature = "docs-rs"))]
+	return cpp!([tri as "Triangulation*", cell_id as "size_t*"] -> *mut u8 as "Full_cells*" {
 	    auto full_cells = new Full_cells();
 	    std::back_insert_iterator<Full_cells> out(*full_cells);
 	    for (auto cit = tri->full_cells_begin(); cit != tri->full_cells_end(); ++cit){
@@ -184,7 +197,10 @@ impl Triangulation {
 		full_cells->push_back(cell);
 	    }
 	    return full_cells;
-        })
+        });
+
+	#[cfg(feature = "docs-rs")]
+	std::ptr::null_mut()
     }
 }
 
@@ -192,6 +208,7 @@ impl Drop for Triangulation {
     fn drop(&mut self) {
         let ptr = self.ptr;
         unsafe {
+            #[cfg(not(feature = "docs-rs"))]
             cpp!([ptr as "Triangulation*"] {
                 delete ptr;
             })

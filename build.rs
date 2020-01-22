@@ -1,3 +1,4 @@
+#[cfg(not(feature = "docs-rs"))]
 fn main() {
     cpp_build::Config::new()
         .compiler("/usr/bin/g++")
@@ -13,3 +14,6 @@ fn main() {
     println!("cargo:rustc-link-lib=gmp");
     println!("cargo:rustc-link-lib=mpfr");
 }
+
+#[cfg(feature = "docs-rs")]
+fn main() {}
