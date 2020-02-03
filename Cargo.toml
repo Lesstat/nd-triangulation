@@ -3,7 +3,7 @@ name = "nd-triangulation"
 version = "0.3.0"
 authors = ["Florian Barth <barth@fmi.uni-stuttgart.de>"]
 edition = "2018"
-description = "Arbirary dimensional triangulations using CGAL"
+description = "Arbitrary dimensional triangulations using CGAL"
 license = "GPL-3.0-or-later"
 repository = "https://github.com/Lesstat/nd-triangulation"
 
