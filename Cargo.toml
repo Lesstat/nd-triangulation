@@ -1,6 +1,6 @@
 [package]
 name = "nd-triangulation"
-version = "0.3.0"
+version = "0.3.1"
 authors = ["Florian Barth <barth@fmi.uni-stuttgart.de>"]
 edition = "2018"
 description = "Arbitrary dimensional triangulations using CGAL"
