@@ -1,3 +1,11 @@
+//! nd-triangulation provides an interface to the
+//! [dD-Triangulation](https://doc.cgal.org/latest/Triangulation/index.html)
+//! Library of [CGAL](https://cgal.org). It allows to create
+//! Triangulations of points in arbitrary dimensions and to traverse
+//! the whole triangulation or just its convex hull.
+//!
+//! The main entry point to the crate is the [`Triangulation`](struct.Triangulation.html)  struct.
+
 #[macro_use]
 extern crate cpp;
 
