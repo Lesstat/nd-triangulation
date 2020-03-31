@@ -1,6 +1,7 @@
 use crate::Cell;
 
 /// A vertex which is part of a triangulation
+#[derive(Debug, PartialEq, Eq)]
 pub struct Vertex<'a> {
     ptr: *mut u8, //c++ type: Vertex_handle
     cell: &'a Cell<'a>,
@@ -44,6 +45,7 @@ impl<'a> Vertex<'a> {
 }
 
 /// Iterator over vertices beloning to a cell
+#[derive(Debug)]
 pub struct VertexIter<'a> {
     cur: usize,
     cell: &'a Cell<'a>,
