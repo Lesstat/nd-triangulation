@@ -1,6 +1,6 @@
 [package]
 name = "nd-triangulation"
-version = "0.3.3"
+version = "0.3.4"
 authors = ["Florian Barth <barth@fmi.uni-stuttgart.de>"]
 edition = "2018"
 description = "Arbitrary dimensional triangulations using CGAL"
@@ -22,4 +22,4 @@ cpp = "^0.5"
 cpp_build = "^0.5"
 
 [dev-dependencies]
-rand = "^0.7"
+rand = "^0.8"
